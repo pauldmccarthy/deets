@@ -3,7 +3,9 @@
 import os
 import os.path as op
 import sys
+import signal
 import argparse
+
 from pathlib import Path
 
 import deets.actions as actions
@@ -11,9 +13,16 @@ import deets.db      as deetsdb
 import deets.ui      as ui
 
 
+def on_sigint(*a):
+    ui.printmsg('\n\nExiting (SIGINT)\n', ui.INFO)
+    sys.exit(1)
+
+
 __version__ = '0.0.1'
 
 def main():
+
+    signal.signal(signal.SIGINT, on_sigint)
 
     dispatch = {
         'list'     : actions.list_entries,
@@ -24,42 +33,31 @@ def main():
         'password' : actions.change_master_password
     }
 
-    args   = parse_args()
+    args = parse_args()
+    ui.printmsg(f'\ndeets password manager [{__version__}]',
+                ui.EMPHASIS, ui.UNDERLINE)
+    ui.printmsg('Press CTRL+C at any time to exit', ui.INFO)
     passwd = ui.prompt_password('\nEnter master password: ', ui.PROMPT)
+    print()
 
-    if op.exists(args.db): db = deetsdb.load_database(args.db, passwd)
-    else:                  db = deetsdb.Database(passwd)
-
-    # select an existing account
-    if args.command in ('get', 'change', 'remove'):
-        select_account(db, args)
-
-    if dispatch[args.command](db, args):
-        ui.printmsg(f'Saving credentials database [{args.db}]', ui.INFO)
-        deetsdb.save_database(db, args.db)
-
-
-def select_account(db, args):
-    names = args.names
-    if names is None or len(names) == 0:
-        while True:
-            names = ui.prompt_input('Account name(s): ', ui.PROMPT).split()
-            keys  = db.lookup_keys(*names)
-            if len(keys) == 0:
-                ui.printmsg(f'No entries match [{" ".join(names)}]',
-                            ui.WARNING)
-            else:
-                break
-
-    if len(keys) == 1:
-        key = keys[0]
+    if op.exists(args.db):
+        ui.printmsg('Loading credentials database [', ui.INFO,
+                    args.db,                          ui.UNDERLINE,
+                    ']\n',                            ui.INFO)
+        db = deetsdb.load_database(args.db, passwd)
     else:
-        ui.printmsg(f'Multiple accounts match [{" ".join(names)}]!',
-                    ui.IMPORTANT)
-        lbls = [' '.join(k) for k in keys]
-        key  = ui.prompt_select('Select an account: ', keys, lbls)
+        ui.printmsg('Creating new credentials database [', ui.INFO,
+                    args.db,                               ui.UNDERLINE,
+                    ']\n',                                 ui.INFO)
+        db = deetsdb.Database(passwd)
 
-    args.account = key
+    dispatch[args.command](db, args)
+
+    if db.changed:
+        ui.printmsg('Saving credentials database [', ui.INFO,
+                    args.db,                         ui.UNDERLINE,
+                    ']\n',                           ui.INFO)
+        deetsdb.save_database(db, args.db)
 
 
 def parse_args(argv=None):
@@ -89,18 +87,18 @@ def parse_args(argv=None):
         'print'    : 'Print password to standard output instead of '
                      'copying it to the system clipboard.'
     }
+    configs = {
+        'names'  : {'nargs' : '*'},
+        'print'  : {'action' : 'store_true'},
+        'random' : {'action' : 'store_true'},
+    }
 
     options = {
-        'list'     : [(('names',),         {'nargs'  : '*'}), ],
-        'get'      : [(('names',),         {'nargs'  : '*'}),
-                      (('-p', '--print'),  {'action' : 'store_true'})],
-        'add'      : [(('names',),         {'nargs'  : '*'}),
-                      (('-r', '--random'), {'action' : 'store_true'}),
-                      (('-p', '--print'),  {'action' : 'store_true'})],
-        'change'   : [(('names',),         {'nargs'  : '*'}),
-                      (('-r', '--random'), {'action' : 'store_true'}),
-                      (('-p', '--print'),  {'action' : 'store_true'})],
-        'remove'   : [(('names',),         {'nargs'  : '*'})],
+        'list'     : [('names',), ('-p', '--print')],
+        'get'      : [('names',), ('-p', '--print')],
+        'add'      : [('names',), ('-p', '--print'), ('-r', '--random')],
+        'change'   : [('names',), ('-p', '--print'), ('-r', '--random')],
+        'remove'   : [('names',)],
         'password' : []
     }
 
@@ -109,15 +107,20 @@ def parse_args(argv=None):
         subp = subparsers.add_parser(command,
                                      help=helps[command],
                                      description=helps[command])
-        for args, kwargs in opts:
-            help = helps[args[-1].lstrip('-')]
-            subp.add_argument(*args, help=help, **kwargs)
+        for flags in opts:
+            name   = flags[-1].lstrip('-')
+            kwargs = configs[name]
+            help   = helps[  name]
+            subp.add_argument(*flags, help=help, **kwargs)
 
     args = parser.parse_args(argv)
 
     if args.command is None:
         parser.print_help()
         sys.exit(0)
+
+    args.db = op.abspath(args.db)
+
     return args
 
 

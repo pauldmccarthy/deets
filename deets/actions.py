@@ -1,11 +1,40 @@
 #!/usr/bin/env python
+#
 
 
 import argparse
 
-import deets.clipboard as clipboard
-import deets.db        as deetsdb
-import deets.ui        as ui
+import deets.clipboard  as clipboard
+import deets.encryption as encryption
+import deets.db         as deetsdb
+import deets.ui         as ui
+
+
+def select_account(db, args):
+
+    names = args.names
+    if names is None or len(names) == 0:
+        names = ui.prompt_input('Account name(s): ', ui.PROMPT).split()
+        names = deetsdb.sanitise_key(names)
+
+    while True:
+        keys = db.lookup_keys(*names)
+        if len(keys) > 0:
+            break
+
+        ui.printmsg(f'No entries match [{" ".join(names)}]', ui.WARNING)
+        names = ui.prompt_input('Account name(s): ', ui.PROMPT).split()
+
+    if len(keys) == 1:
+        key = keys[0]
+    else:
+        ui.printmsg('Multiple accounts match [', ui.WARNING,
+                    ' '.join(names),             ui.IMPORTANT,
+                    ']',                         ui.WARNING)
+        lbls = [' '.join(k) for k in keys]
+        key  = ui.prompt_select('Select an account: ', keys, lbls)
+
+    return key
 
 
 def list_entries(db : deetsdb.Database, args : argparse.Namespace):

@@ -7,21 +7,21 @@ import getpass
 
 # List of modifiers which can be used to change how
 # a message is printed by the printmsg function.
-INFO      = 1
-IMPORTANT = 2
-QUESTION  = 3
-PROMPT    = 4
-WARNING   = 5
-ERROR     = 6
-EMPHASIS  = 7
-UNDERLINE = 8
-RESET     = 9
+INFO      = object()
+IMPORTANT = object()
+QUESTION  = object()
+PROMPT    = object()
+WARNING   = object()
+ERROR     = object()
+EMPHASIS  = object()
+UNDERLINE = object()
+RESET     = object()
 ANSICODES = {
     INFO      : '\033[37m',         # Light grey
-    IMPORTANT : '\033[92m',         # Green
+    IMPORTANT : '\033[92m\033[1m',  # Green+bold
     QUESTION  : '\033[36m\033[4m',  # Blue+underline
     PROMPT    : '\033[36m\033[1m',  # Bright blue+bold
-    WARNING   : '\033[93m',         # Yellow
+    WARNING   : '\033[93m\033[1m',  # Yellow+bold
     ERROR     : '\033[91m',         # Red
     EMPHASIS  : '\033[1m',          # White+bold
     UNDERLINE : '\033[4m',          # Underline
@@ -29,46 +29,51 @@ ANSICODES = {
 }
 
 
-def printmsg(msg='', *msgtypes, **kwargs):
-    """Prints msg according to the ANSI codes provided in msgtypes.
-    All other keyword arguments are passed through to the print function.
+def printmsg(*args, **kwargs):
+    """Prints a sequence of strings according to the ANSI codes provided in
+    msgtypes. Expects positional arguments to be of the form::
+
+        printable, ANSICODE, printable, ANSICODE, ...
 
     :arg msgtypes: Message types to control formatting
     """
-    msgcodes = [ANSICODES[t] for t in msgtypes]
-    msgcodes = ''.join(msgcodes)
-    print(f'{msgcodes}{msg}{ANSICODES[RESET]}', **kwargs)
-    sys.stdout.flush()
 
-
-def printmsgs(*args):
-
-    blockids = [i for i in range(len(args)) if isinstance(args[i], str)]
+    args     = list(args)
+    blockids = [i for i in range(len(args)) if (args[i] not in ANSICODES)]
 
     for i, idx in enumerate(blockids):
         if i == len(blockids) - 1:
-            printmsg(*args[idx:])
+            slc = slice(idx + 1, None)
         else:
-            nextidx = blockids[i + 1]
-            printmsg(*args[idx:nextidx], end='')
+            slc = slice(idx + 1, blockids[i + 1])
+
+        msg      = args[idx]
+        msgcodes = args[slc]
+        msgcodes = [ANSICODES[c] for c in msgcodes]
+        msgcodes = ''.join(msgcodes)
+
+        print(f'{msgcodes}{msg}{ANSICODES[RESET]}', end='')
+
+    print(**kwargs)
+    sys.stdout.flush()
 
 
 def prompt_password(prompt='', *msgtypes, show=False):
     printmsg(prompt, *msgtypes, end='')
-    if show: return input()
-    else:    return getpass.getpass(prompt='')
+    if show: return input().strip()
+    else:    return getpass.getpass(prompt='').strip()
 
 
 def prompt_input(prompt='', *msgtypes):
     printmsg(prompt, *msgtypes, end='')
-    return input('')
+    return input('').strip()
 
 
 def prompt_select(prompt, choices, labels=None):
     if labels is None:
         labels = choices
     for i, label in enumerate(labels):
-        printmsgs(f'[{i + 1}]: ', EMPHASIS, label, INFO)
+        printmsg(f'[{i + 1}]: ', EMPHASIS, label, INFO)
     while True:
         select = prompt_input(prompt, PROMPT)
         try:    select = int(select) - 1
@@ -100,18 +105,22 @@ def print_columns(titles, columns):
         maxLen = max([len(r) for r in col])
         colLens.append(maxLen)
 
-    fmtStr = ' | '.join('{{:<{}s}}'.format(l) for l in colLens)
+    fmtStrs = ['{{:<{}s}}'.format(l) for l   in colLens]
+    titles  = [col[0]                for col in columns]
+    rowsep  = ['-' * l               for l   in colLens]
+    columns = [col[1:]               for col in columns]
 
-    titles  = [col[0]  for col in columns]
-    columns = [col[1:] for col in columns]
+    def printrow(vals, *msgtypes):
+        for i, (val, fmtStr) in enumerate(zip(vals, fmtStrs)):
+            printmsg(fmtStr.format(val), *msgtypes, end='')
+            if i < len(vals) - 1:
+                printmsg(' | ', INFO, end='')
+        print()
 
-    separator = ['-' * l for l in colLens]
-
-    printmsg(fmtStr.format(*titles), EMPHASIS)
-    printmsg(fmtStr.format(*separator), EMPHASIS)
+    printrow(titles, EMPHASIS)
+    printrow(rowsep, INFO)
 
     nrows = len(columns[0])
     for i in range(nrows):
-
         row = [col[i] for col in columns]
-        printmsg(fmtStr.format(*row), EMPHASIS)
+        printrow(row, IMPORTANT)
