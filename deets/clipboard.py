@@ -2,6 +2,7 @@
 
 
 import sys
+import shlex
 import subprocess as sp
 
 
@@ -17,4 +18,4 @@ def _copy_macos(text : str):
 
 
 def _copy_linux(text : str):
-    sp.run('xsel -b -i', text=True, input=text)
+    sp.run(shlex.split('xsel -b -i'), text=True, input=text)
