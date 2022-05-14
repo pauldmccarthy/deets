@@ -8,9 +8,10 @@ import argparse
 
 from pathlib import Path
 
-import deets.commands as commands
-import deets.db       as deetsdb
-import deets.ui       as ui
+import deets.commands   as commands
+import deets.encryption as encryption
+import deets.db         as deetsdb
+import deets.ui         as ui
 
 
 def on_sigint(*a):
@@ -18,7 +19,8 @@ def on_sigint(*a):
     sys.exit(1)
 
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
+
 
 def main():
 
@@ -38,6 +40,7 @@ def main():
     ui.printmsg(f'\ndeets password manager [{__version__}]',
                 ui.EMPHASIS, ui.UNDERLINE)
     ui.printmsg('Press CTRL+C at any time to exit', ui.INFO)
+
     passwd = ui.prompt_password('\nEnter master password: ', ui.PROMPT)
     print()
 
@@ -45,7 +48,13 @@ def main():
         ui.printmsg('Loading credentials database [', ui.INFO,
                     args.db,                          ui.UNDERLINE,
                     ']\n',                            ui.INFO)
-        db = deetsdb.load_database(args.db, passwd)
+
+        try:
+            db = deetsdb.load_database(args.db, passwd)
+        except encryption.AuthenticationError:
+            ui.printmsg('Authentication error - could not decrypt '
+                        'credentials database!', ui.ERROR)
+            sys.exit(1)
     else:
         ui.printmsg('Creating new credentials database [', ui.INFO,
                     args.db,                               ui.UNDERLINE,

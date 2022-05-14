@@ -6,7 +6,7 @@ import base64 as b64
 import           string
 import           secrets
 
-from cryptography.fernet                       import Fernet
+from cryptography.fernet                       import Fernet, InvalidToken
 from cryptography.hazmat.primitives            import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
@@ -29,6 +29,10 @@ def generate_random_password() -> str:
     return password
 
 
+class AuthenticationError(Exception):
+    pass
+
+
 def encrypt(data     : bytes,
             password : bytes,
             salt     : bytes = None) -> bytes:
@@ -40,7 +44,10 @@ def decrypt(data     : bytes,
             password : bytes,
             salt     : bytes = None) -> bytes:
     """Decrypt a byte sequence. """
-    return _create_encrypter(password, salt).decrypt(data)
+    try:
+        _create_encrypter(password, salt).decrypt(data)
+    except InvalidToken:
+        raise AuthenticationError()
 
 
 def sencrypt(data     : str,
