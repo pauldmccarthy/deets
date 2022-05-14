@@ -47,6 +47,7 @@ class Database:
     @password.setter
     def password(self, password : str):
         self.__password = password
+        self.__changed  = True
 
 
     @property

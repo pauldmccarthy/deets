@@ -204,4 +204,14 @@ def remove_entry(db : deetsdb.Database, args : argparse.Namespace):
 
 
 def change_master_password(db : deetsdb.Database, args : argparse.Namespace):
-    print('change master')
+
+    password = ui.prompt_password('\nEnter new master password: ',
+                                  ui.PROMPT)
+    repeat   = None
+
+    while repeat != password:
+        repeat = ui.prompt_password('Re-enter new master password: ',
+                                    ui.PROMPT)
+
+    db.password = password
+    ui.printmsg('\nMaster password changed', ui.INFO)

@@ -8,9 +8,9 @@ import argparse
 
 from pathlib import Path
 
-import deets.actions as actions
-import deets.db      as deetsdb
-import deets.ui      as ui
+import deets.commands as commands
+import deets.db       as deetsdb
+import deets.ui       as ui
 
 
 def on_sigint(*a):
@@ -25,15 +25,16 @@ def main():
     signal.signal(signal.SIGINT, on_sigint)
 
     dispatch = {
-        'list'     : actions.list_entries,
-        'add'      : actions.add_entry,
-        'get'      : actions.get_entry,
-        'change'   : actions.change_entry,
-        'remove'   : actions.remove_entry,
-        'password' : actions.change_master_password
+        'list'     : commands.list_entries,
+        'add'      : commands.add_entry,
+        'get'      : commands.get_entry,
+        'change'   : commands.change_entry,
+        'remove'   : commands.remove_entry,
+        'password' : commands.change_master_password
     }
 
     args = parse_args()
+
     ui.printmsg(f'\ndeets password manager [{__version__}]',
                 ui.EMPHASIS, ui.UNDERLINE)
     ui.printmsg('Press CTRL+C at any time to exit', ui.INFO)
