@@ -13,6 +13,11 @@ from typing import Union, List, Tuple, Sequence
 pathtype = Union[str, Path]
 
 
+def sanitise_key(names : Sequence[str]) -> Tuple[str, ...]:
+    names = [n.lower() for n in names]
+    return tuple(sorted(set(names)))
+
+
 class Database:
     """Credentials database. A mapping between names/identifiers and account
     information (username+password pairs).
@@ -28,10 +33,12 @@ class Database:
     was used to decrypt it, and should be used to re-encrypt it.
     """
 
+
     def __init__(self, password : str):
         self.__password     = password
         self.__entries      = {}
         self.__nameResolver = defaultdict(set)
+        self.__changed      = False
 
     @property
     def password(self) -> str:
@@ -40,6 +47,16 @@ class Database:
     @password.setter
     def password(self, password : str):
         self.__password = password
+
+
+    @property
+    def changed(self) -> bool:
+        return self.__changed
+
+
+    @changed.setter
+    def changed(self, val : bool):
+        self.__changed = val
 
 
     def __iter__(self) -> Tuple[Tuple[str, ...], Tuple[str, str]]:
@@ -55,21 +72,23 @@ class Database:
         """Returns all identifiers (each comprising one or more names) which
         contain all of the given names.
         """
-        hits = it.chain(*[self.__nameResolver[n] for n in names])
-        hits = [h for h in hits if all(n in h for n in names)]
-        hits = sorted(set(hits))
+        names = sanitise_key(names)
+        hits  = it.chain(*[self.__nameResolver[n] for n in names])
+        hits  = [h for h in hits if all(n in h    for n in names)]
+        hits  = sorted(set(hits))
         return hits
 
 
     def __contains__(self, names : Tuple[str, ...]) -> bool:
-        names = tuple(sorted(set(names)))
+        names = sanitise_key(names)
         return names in self.__entries
 
 
     def __setitem__(self,
                     names       : Tuple[str, ...],
                     credentials : Tuple[str, str]):
-        names = tuple(sorted(set(names)))
+
+        names = sanitise_key(names)
 
         if names in self.__entries:
             raise KeyError(f'Entry {names} already exists')
@@ -78,16 +97,22 @@ class Database:
 
         for name in names:
             self.__nameResolver[name].add(names)
+        self.__changed = True
 
 
     def __getitem__(self, names : Tuple[str, ...]) -> Tuple[str, str]:
+        names = sanitise_key(names)
         return self.__entries[names]
 
+    def delete(self, names : Tuple[str, ...]):
+        self.__delitem__(names)
 
     def __delitem__(self, names : Tuple[str, ...]):
+        names = sanitise_key(names)
         self.__entries.pop(names)
         for name in names:
             self.__nameResolver[name].remove(names)
+        self.__changed = True
 
 
 def load_database(filename : pathtype,
@@ -129,6 +154,8 @@ def load_database(filename : pathtype,
 
     for entry in entries:
         db[tuple(entry['names'])] = (entry['username'], entry['password'])
+
+    db.changed = False
 
     return db
 
