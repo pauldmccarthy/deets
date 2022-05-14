@@ -41,10 +41,8 @@ def main():
                 ui.EMPHASIS, ui.UNDERLINE)
     ui.printmsg('Press CTRL+C at any time to exit', ui.INFO)
 
-    passwd = ui.prompt_password('\nEnter master password: ', ui.PROMPT)
-    print()
-
     if op.exists(args.db):
+        passwd = ui.prompt_password('\nEnter master password: ', ui.PROMPT)
         ui.printmsg('Loading credentials database [', ui.INFO,
                     args.db,                          ui.UNDERLINE,
                     ']\n',                            ui.INFO)
@@ -59,7 +57,8 @@ def main():
         ui.printmsg('Creating new credentials database [', ui.INFO,
                     args.db,                               ui.UNDERLINE,
                     ']\n',                                 ui.INFO)
-        db = deetsdb.Database(passwd)
+        db = deetsdb.Database('')
+        commands.change_master_password(db, args)
 
     dispatch[args.command](db, args)
 
@@ -74,14 +73,15 @@ def parse_args(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
+    defaultdb = os.environ.get('DEETSDB', Path.home() / '.deets')
+
     parser = argparse.ArgumentParser('deets',
                                      description='Manage confidential details')
     parser.add_argument('-v', '--version',
                         action='version', version=__version__)
     parser.add_argument('-s', '--show', action='store_true')
 
-    parser.add_argument('-d', '--db', metavar='FILE',
-                        default=Path.home() / '.deets')
+    parser.add_argument('-d', '--db', metavar='FILE', default=defaultdb)
 
     helps = {
         'list'     : 'List all entries',

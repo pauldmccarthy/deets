@@ -45,7 +45,7 @@ def decrypt(data     : bytes,
             salt     : bytes = None) -> bytes:
     """Decrypt a byte sequence. """
     try:
-        _create_encrypter(password, salt).decrypt(data)
+        return _create_encrypter(password, salt).decrypt(data)
     except InvalidToken:
         raise AuthenticationError()
 
