@@ -96,14 +96,10 @@ def add_entry(db : deetsdb.Database, args : argparse.Namespace):
                 ' '.join(account),         ui.IMPORTANT,
                 ']',                       ui.INFO)
 
-    username  = ui.prompt_input('Username: ', ui.PROMPT)
-    if args.random:
-        password = ''
-    else:
-        password = ui.prompt_password(
-            'Password [push enter to randomly generate one]: ',
-            ui.PROMPT,
-            show=args.show)
+    username = ui.prompt_input('Username: ', ui.PROMPT)
+    password = ui.prompt_password(
+        'Password [push enter to randomly generate one]: ',
+        ui.PROMPT, show=args.show)
 
     if password == '':
         ui.printmsg('Using randomly generated password', ui.INFO)
@@ -153,13 +149,13 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
     if new_username == '':
         new_username = old_username
 
-    if args.random:
+    ui.printmsg('Password [press enter to leave unchanged]',   ui.PROMPT)
+    ui.printmsg('         [press "r" to randomly generate]: ', ui.PROMPT)
+    new_password = ui.prompt_password('')
+    if new_password == '':
+        new_password = old_password
+    elif new_password == 'r':
         new_password = encryption.generate_random_password()
-    else:
-        new_password = ui.prompt_password(
-            'Password [press enter to leave unchanged]: ', ui.PROMPT)
-        if new_password == '':
-            new_password = old_password
 
     if new_account  == old_account  and \
        new_username == old_username and \
@@ -215,3 +211,34 @@ def change_master_password(db : deetsdb.Database, args : argparse.Namespace):
 
     db.password = password
     ui.printmsg('\nMaster password changed', ui.INFO)
+
+
+def repl_loop(db : deetsdb.Database, args : argparse.Namespace):
+
+    # so other commands don't bork
+    args.names = []
+
+    ui.printmsg('Available commands:', ui.INFO, '"get", '
+                '"add", "change", "remove"', ui.EMPHASIS)
+    ui.printmsg('Type "q", "quit", or "exit" to exit. *DO NOT* use CTRL+C '
+                '- if you do, your changes will not be saved.', ui.INFO)
+
+    dispatch = {
+        'get'    : get_entry,
+        'add'    : add_entry,
+        'change' : change_entry,
+        'remove' : remove_entry,
+    }
+
+    while True:
+        cmd = ui.prompt_input('Command: [add]: ', ui.PROMPT).lower()
+        if cmd in ('q', 'quit', 'exit'):
+            break
+        if cmd == '':
+            cmd = 'add'
+
+        if cmd not in dispatch:
+            ui.printmsg(f'Unknown command [{cmd}]', ui.WARNING)
+            continue
+
+        dispatch[cmd](db, args)

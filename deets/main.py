@@ -32,7 +32,8 @@ def main():
         'get'      : commands.get_entry,
         'change'   : commands.change_entry,
         'remove'   : commands.remove_entry,
-        'password' : commands.change_master_password
+        'password' : commands.change_master_password,
+        'repl'     : commands.repl_loop
     }
 
     args = parse_args()
@@ -90,10 +91,9 @@ def parse_args(argv=None):
         'change'   : 'Modify an entry',
         'remove'   : 'Delete an entry',
         'password' : 'Change the master password',
+        'repl'     : 'Run multiple commands via an interactive prompt',
 
         'names'    : 'Entry name(s)',
-        'random'   : 'Generate a random password, and copy it to the '
-                     'system clipboard or print it to standard output.',
         'print'    : 'Print password to standard output instead of '
                      'copying it to the system clipboard.'
     }
@@ -106,10 +106,11 @@ def parse_args(argv=None):
     options = {
         'list'     : [('names',), ('-p', '--print')],
         'get'      : [('names',), ('-p', '--print')],
-        'add'      : [('names',), ('-p', '--print'), ('-r', '--random')],
-        'change'   : [('names',), ('-p', '--print'), ('-r', '--random')],
+        'add'      : [('names',), ('-p', '--print')],
+        'change'   : [('names',), ('-p', '--print')],
         'remove'   : [('names',)],
-        'password' : []
+        'password' : [],
+        'repl'     : [            ('-p', '--print')],
     }
 
     subparsers = parser.add_subparsers(title='Commands', dest='command')
