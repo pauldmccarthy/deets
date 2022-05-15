@@ -20,7 +20,7 @@ def sanitise_key(names : Sequence[str]) -> Tuple[str, ...]:
 
 class Database:
     """Credentials database. A mapping between names/identifiers and account
-    information (username+password pairs).
+    information (username+password pairs, and additional notes).
 
     Each account can be identified by multiple names. The same name may be
     used for different accounts, but the combination of names used for each
@@ -30,19 +30,24 @@ class Database:
     and another account may have ``('amazon', 'store')``.
 
     A ``Database`` object also stores a reference to the master password that
-    was used to decrypt it, and should be used to re-encrypt it.
+    was used to decrypt it, and should be used to re-encrypt it when the
+    program exits. This is done by the ``load_database``and ``save_database``
+    functions, also defined in this module.
     """
 
 
     def __init__(self, password : str):
         self.__password     = password
         self.__entries      = {}
+        self.__notes        = {}
         self.__nameResolver = defaultdict(set)
         self.__changed      = False
+
 
     @property
     def password(self) -> str:
         return self.__password
+
 
     @password.setter
     def password(self, password : str):
@@ -80,6 +85,17 @@ class Database:
         return hits
 
 
+    def get_notes(self, names : Tuple[str, ...]) -> Union[str, None]:
+        names = sanitise_key(names)
+        return self.__notes.get(names, None)
+
+
+    def set_notes(self, names : Tuple[str, ...], notes : str):
+        names = sanitise_key(names)
+        self.__notes[names] = notes
+        self.__changed = True
+
+
     def __contains__(self, names : Tuple[str, ...]) -> bool:
         names = sanitise_key(names)
         return names in self.__entries
@@ -90,9 +106,6 @@ class Database:
                     credentials : Tuple[str, str]):
 
         names = sanitise_key(names)
-
-        if names in self.__entries:
-            raise KeyError(f'Entry {names} already exists')
 
         self.__entries[names] = credentials
 
@@ -105,8 +118,10 @@ class Database:
         names = sanitise_key(names)
         return self.__entries[names]
 
+
     def delete(self, names : Tuple[str, ...]):
         self.__delitem__(names)
+
 
     def __delitem__(self, names : Tuple[str, ...]):
         names = sanitise_key(names)
@@ -140,9 +155,12 @@ def load_database(filename : pathtype,
                 "names"    : ["names", "which", "identify", "this", "account"],
                 "username" : "<username>",
                 "password" : "<password>",
+                "notes"    : "<notes>"
             },
             ...
         ]
+
+    The ``"notes"`` field may or may not be present.
     """
 
     with open(filename, 'rt') as f:
@@ -155,6 +173,9 @@ def load_database(filename : pathtype,
 
     for entry in entries:
         db[tuple(entry['names'])] = (entry['username'], entry['password'])
+
+        if 'notes' in entry:
+            db.set_notes(entry['names'], entry['notes'])
 
     db.changed = False
 
@@ -170,10 +191,13 @@ def save_database(db       : Database,
     entries = []
 
     for names, (u, p) in db:
+        notes = db.get_notes(names)
         entries.append({
             'names'    : names,
             'username' : u,
             'password' : p})
+        if notes is not None:
+            entries[-1]['notes'] = notes
 
     entries = json.dumps(entries)
     passwd  = db.password
