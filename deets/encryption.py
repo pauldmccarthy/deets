@@ -19,7 +19,7 @@ def generate_salt() -> bytes:
 #      (e.g. min/max length, allowable characters, etc)
 def generate_random_password() -> str:
     # Taken from the python secrets module documentation
-    chars = string.ascii_letters + string.digits + string.punctuation
+    chars = string.ascii_letters + string.digits
     while True:
         password = ''.join(secrets.choice(chars) for i in range(30))
         if any(c.islower() for c in password) and \
