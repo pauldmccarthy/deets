@@ -90,9 +90,12 @@ class Database:
         return self.__notes.get(names, None)
 
 
-    def set_notes(self, names : Tuple[str, ...], notes : str):
+    def set_notes(self, names : Tuple[str, ...], notes : Union[str, None]):
         names = sanitise_key(names)
-        self.__notes[names] = notes
+        if notes is None:
+            self.__notes.pop(names, None)
+        else:
+            self.__notes[names] = notes
         self.__changed = True
 
 

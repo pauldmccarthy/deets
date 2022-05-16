@@ -47,9 +47,10 @@ def list_entries(db : deetsdb.Database, args : argparse.Namespace):
             accounts.extend(db.lookup_keys(name))
         accounts = sorted(set(accounts))
 
-    usernames = [db[acct][0]           for acct in accounts]
-    passwords = [db[acct][1]           for acct in accounts]
-    accounts  = [f'[{" ".join(acct)}]' for acct in accounts]
+    usernames = [db[acct][0]                 for acct in accounts]
+    passwords = [db[acct][1]                 for acct in accounts]
+    notes     = [db.get_notes(acct) or 'n/a' for acct in accounts]
+    accounts  = [f'[{" ".join(acct)}]'       for acct in accounts]
 
     titles = ['Account', 'Username']
     cols   = [accounts, usernames]
@@ -57,6 +58,9 @@ def list_entries(db : deetsdb.Database, args : argparse.Namespace):
     if args.print:
         titles.append('Password')
         cols.append(   passwords)
+
+    titles.append('Notes')
+    cols  .append(notes)
 
     print()
     ui.print_columns(titles, cols)
@@ -66,6 +70,7 @@ def list_entries(db : deetsdb.Database, args : argparse.Namespace):
 def get_entry(db : deetsdb.Database, args : argparse.Namespace):
     account            = select_account(db, args)
     username, password = db[account]
+    notes              = db.get_notes(account) or 'n/a'
     account            = ' '.join(account)
     clipboard.copy(password)
 
@@ -76,6 +81,7 @@ def get_entry(db : deetsdb.Database, args : argparse.Namespace):
     ui.printmsg('Account:  ', ui.INFO, account,  ui.EMPHASIS)
     ui.printmsg('Username: ', ui.INFO, username, ui.EMPHASIS)
     ui.printmsg('Password: ', ui.INFO, password, ui.EMPHASIS)
+    ui.printmsg('Notes:    ', ui.INFO, notes,    ui.EMPHASIS)
     print()
 
 
@@ -106,6 +112,11 @@ def add_entry(db : deetsdb.Database, args : argparse.Namespace):
         password = encryption.generate_random_password()
 
     db[account] = (username, password)
+
+    notes = ui.prompt_input('Notes [push enter for no notes]: ', ui.PROMPT)
+    if notes != '':
+        db.set_notes(account, notes)
+
     clipboard.copy(password)
 
     if not args.print:
@@ -115,6 +126,7 @@ def add_entry(db : deetsdb.Database, args : argparse.Namespace):
     ui.printmsg('Account:  ', ui.INFO, ' '.join(account), ui.EMPHASIS)
     ui.printmsg('Username: ', ui.INFO, username,          ui.EMPHASIS)
     ui.printmsg('Password: ', ui.INFO, password,          ui.EMPHASIS)
+    ui.printmsg('Notes: '   , ui.INFO, notes,             ui.EMPHASIS)
     print()
 
 
@@ -122,6 +134,7 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
 
     old_account                = select_account(db, args)
     old_username, old_password = db[old_account]
+    old_notes                  = db.get_notes(old_account)
 
     ui.printmsg('Changing account: [', ui.WARNING,
                 ' '.join(old_account), ui.IMPORTANT,
@@ -157,11 +170,18 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
     elif new_password == 'r':
         new_password = encryption.generate_random_password()
 
+    ui.printmsg('Notes [press enter to leave unchanged]', ui.PROMPT)
+    ui.printmsg('      [press "d" to clear]: ',           ui.PROMPT)
+    new_notes = ui.prompt_input('')
+    if new_notes == '':  new_notes = old_notes
+    if new_notes == 'd': new_notes = None
+
     if new_account  == old_account  and \
        new_username == old_username and \
-       new_password == old_password:
-        ui.printmsg('Account credentials not changed - database not modified',
-                    ui.INFO)
+       new_password == old_password and \
+       new_notes    == old_notes:
+        ui.printmsg('Account credentials not changed - '
+                    'database not modified', ui.INFO)
         return
 
     if new_account != old_account:
@@ -171,6 +191,7 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
         db.delete(old_account)
 
     db[new_account] = (new_username, new_password)
+    db.set_notes(new_account, new_notes)
     clipboard.copy(new_password)
 
     if not args.print:
@@ -180,6 +201,7 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
     ui.printmsg('Account:  ', ui.INFO, ' '.join(new_account), ui.EMPHASIS)
     ui.printmsg('Username: ', ui.INFO, new_username,          ui.EMPHASIS)
     ui.printmsg('Password: ', ui.INFO, new_password,          ui.EMPHASIS)
+    ui.printmsg('Notes:    ', ui.INFO, new_notes or 'n/a',    ui.EMPHASIS)
 
 
 def remove_entry(db : deetsdb.Database, args : argparse.Namespace):
