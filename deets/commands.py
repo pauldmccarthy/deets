@@ -102,7 +102,10 @@ def add_entry(db : deetsdb.Database, args : argparse.Namespace):
                 ' '.join(account),         ui.IMPORTANT,
                 ']',                       ui.INFO)
 
-    username = ui.prompt_input('Username: ', ui.PROMPT)
+    if args.username is None: prompt = 'Username: '
+    else:                     prompt = f'Username: [{args.username}]: '
+
+    username = ui.prompt_input(prompt, ui.PROMPT, default=args.username)
     password = ui.prompt_password(
         'Password [push enter to randomly generate one]: ',
         ui.PROMPT, show=args.show)

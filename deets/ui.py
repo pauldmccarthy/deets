@@ -64,9 +64,12 @@ def prompt_password(prompt='', *msgtypes, show=False):
     else:    return getpass.getpass(prompt='').strip()
 
 
-def prompt_input(prompt='', *msgtypes):
+def prompt_input(prompt='', *msgtypes, default=None):
     printmsg(prompt, *msgtypes, end='')
-    return input('').strip()
+    response = input('').strip()
+
+    if (default is not None) and (response == ''): return default
+    else:                                          return response
 
 
 def prompt_select(prompt, choices, labels=None):

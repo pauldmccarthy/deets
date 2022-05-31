@@ -94,19 +94,21 @@ def parse_args(argv=None):
         'repl'     : 'Run multiple commands via an interactive prompt',
 
         'names'    : 'Entry name(s)',
+        'username' : 'Username (defaults to $DEETSUSERNAME)',
         'print'    : 'Print password to standard output instead of '
                      'copying it to the system clipboard.'
     }
     configs = {
-        'names'  : {'nargs' : '*'},
-        'print'  : {'action' : 'store_true'},
-        'random' : {'action' : 'store_true'},
+        'names'    : {'nargs'   : '*'},
+        'print'    : {'action'  : 'store_true'},
+        'random'   : {'action'  : 'store_true'},
+        'username' : {'default' : os.environ.get('DEETSUSERNAME', None)}
     }
 
     options = {
         'list'     : [('names',), ('-p', '--print')],
         'get'      : [('names',), ('-p', '--print')],
-        'add'      : [('names',), ('-p', '--print')],
+        'add'      : [('names',), ('-p', '--print'), ('-u', '--username')],
         'change'   : [('names',), ('-p', '--print')],
         'remove'   : [('names',)],
         'password' : [],
