@@ -161,12 +161,11 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
             break
 
     new_username = ui.prompt_input(
-        'Username [press enter to leave unchanged]: ', ui.PROMPT)
-    if new_username == '':
-        new_username = old_username
+        'Username [press enter to leave unchanged]: ',
+        ui.PROMPT, default=old_username)
 
     ui.printmsg('Password [press enter to leave unchanged]',   ui.PROMPT)
-    ui.printmsg('         [press "r" to randomly generate]: ', ui.PROMPT)
+    ui.printmsg('         [press "r" to randomly generate]: ', ui.PROMPT, end=None)
     new_password = ui.prompt_password('')
     if new_password == '':
         new_password = old_password
