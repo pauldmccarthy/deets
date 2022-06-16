@@ -112,7 +112,8 @@ def add_entry(db : deetsdb.Database, args : argparse.Namespace):
 
     if password == '':
         ui.printmsg('Using randomly generated password', ui.INFO)
-        password = encryption.generate_random_password()
+        password = encryption.generate_random_password(args.length,
+                                                       args.char_class)
 
     db[account] = (username, password)
 
@@ -170,7 +171,8 @@ def change_entry(db : deetsdb.Database, args : argparse.Namespace):
     if new_password == '':
         new_password = old_password
     elif new_password == 'r':
-        new_password = encryption.generate_random_password()
+        new_password = encryption.generate_random_password(args.length,
+                                                           args.char_class)
 
     ui.printmsg('Notes [press enter to leave unchanged]', ui.PROMPT)
     ui.printmsg('      [press "d" to clear]: ',           ui.PROMPT)

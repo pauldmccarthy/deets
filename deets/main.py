@@ -96,9 +96,9 @@ def parse_args(argv=None):
         'names'    : 'Entry name(s)',
         'username' : 'Username (defaults to $DEETSUSERNAME)',
         'length'   : 'Password (defaults to $DEETSPASSWORDLENGTH)',
-        'class'    : 'Password character class (defaults to $DEETSPASSWORDCLASS). '
-                     'Can be used multiple times. Available classes: ' + \
-                     ','.join(encryption.PASSWORD_CHARACTER_CLASSES.keys(),
+        'class'    : 'Password character class (defaults to $DEETSPASSWORDCLASS). ' +
+                     'Can be used multiple times. Available classes: ' +
+                     ','.join(encryption.PASSWORD_CHARACTER_CLASSES.keys()),
         'print'    : 'Print password to standard output instead of '
                      'copying it to the system clipboard.'
     }
@@ -106,10 +106,11 @@ def parse_args(argv=None):
         'names'    : {'nargs'   : '*'},
         'print'    : {'action'  : 'store_true'},
         'random'   : {'action'  : 'store_true'},
-        'username' : {'default' : os.environ.get('DEETSUSERNAME',       None)}
-        'length'   : {'default' : os.environ.get('DEETSPASSWORDLENGTH', None)}
+        'username' : {'default' : os.environ.get('DEETSUSERNAME',       None)},
+        'length'   : {'default' : os.environ.get('DEETSPASSWORDLENGTH', None)},
         'class'    : {'action'  : 'append',
-                      'default' : os.environ.get('DEETSPASSWORDCLASS',  None)}
+                      'default' : os.environ.get('DEETSPASSWORDCLASS',  None),
+                      'dest'    : 'char_class'}
     }
 
     options = {
