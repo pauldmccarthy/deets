@@ -102,14 +102,22 @@ def parse_args(argv=None):
         'print'    : 'Print password to standard output instead of '
                      'copying it to the system clipboard.'
     }
+    username     = os.environ.get('DEETSUSERNAME',       None)
+    char_classes = os.environ.get('DEETSPASSWORDCLASS',  None)
+    pwd_length   = os.environ.get('DEETSPASSWORDLENGTH', None)
+
+    if char_classes is not None: char_classes = char_classes.split()
+    if pwd_length   is not None: pwd_length   = int(pwd_length)
+
     configs = {
         'names'    : {'nargs'   : '*'},
         'print'    : {'action'  : 'store_true'},
         'random'   : {'action'  : 'store_true'},
-        'username' : {'default' : os.environ.get('DEETSUSERNAME',       None)},
-        'length'   : {'default' : os.environ.get('DEETSPASSWORDLENGTH', None)},
+        'username' : {'default' : username},
+        'length'   : {'default' : pwd_length,
+                      'type'    : int},
         'class'    : {'action'  : 'append',
-                      'default' : os.environ.get('DEETSPASSWORDCLASS',  None),
+                      'default' : char_classes,
                       'dest'    : 'char_class'}
     }
 
