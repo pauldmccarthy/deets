@@ -135,7 +135,10 @@ def parse_args(argv=None):
                       ('-c', '--class')],
         'remove'   : [('names',)],
         'password' : [],
-        'repl'     : [('-p', '--print')],
+        'repl'     : [('-p', '--print'),
+                      ('-u', '--username'),
+                      ('-l', '--length'),
+                      ('-c', '--class')],
     }
 
     subparsers = parser.add_subparsers(title='Commands', dest='command')
