@@ -60,13 +60,19 @@ def printmsg(*args, **kwargs):
 
 def prompt_password(prompt='', *msgtypes, show=False):
     printmsg(prompt, *msgtypes, end='')
-    if show: return input().strip()
-    else:    return getpass.getpass(prompt='').strip()
+    if show: response = input().strip()
+    else:    response = getpass.getpass(prompt='').strip()
+    if response == '':
+        print()
+    return response
 
 
 def prompt_input(prompt='', *msgtypes, default=None):
     printmsg(prompt, *msgtypes, end='')
     response = input('').strip()
+
+    if response == '':
+        print()
 
     if (default is not None) and (response == ''): return default
     else:                                          return response
