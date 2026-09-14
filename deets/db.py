@@ -18,6 +18,30 @@ def sanitise_key(names : Sequence[str]) -> Tuple[str, ...]:
     return tuple(sorted(set(names)))
 
 
+class NameResolver:
+    """Used by the Database to search entries by name.
+    """
+
+    def __init__(self):
+        self.__entries = defaultdict(set)
+
+    def add(self, names : list[str]):
+        for name in names:
+            self.__entries[name].add(names)
+
+    def remove(self, names : list[str]):
+        for name in names:
+            self.__entries[name].remove(names)
+
+    def get(self, query : str) -> set[tuple[str]]:
+        hits = set()
+        for k, v in self.__entries.items():
+            if query in k:
+                hits = hits.union(v)
+
+        return hits
+
+
 class Database:
     """Credentials database. A mapping between names/identifiers and account
     information (username+password pairs, and additional notes).
@@ -40,7 +64,7 @@ class Database:
         self.__password     = password
         self.__entries      = {}
         self.__notes        = {}
-        self.__nameResolver = defaultdict(set)
+        self.__nameResolver = NameResolver()
         self.__changed      = False
 
 
@@ -79,8 +103,7 @@ class Database:
         contain all of the given names.
         """
         names = sanitise_key(names)
-        hits  = it.chain(*[self.__nameResolver[n] for n in names])
-        hits  = [h for h in hits if all(n in h    for n in names)]
+        hits  = it.chain(*[self.__nameResolver.get(n) for n in names])
         hits  = sorted(set(hits))
         return hits
 
@@ -111,9 +134,7 @@ class Database:
         names = sanitise_key(names)
 
         self.__entries[names] = credentials
-
-        for name in names:
-            self.__nameResolver[name].add(names)
+        self.__nameResolver.add(names)
         self.__changed = True
 
 
@@ -129,8 +150,7 @@ class Database:
     def __delitem__(self, names : Tuple[str, ...]):
         names = sanitise_key(names)
         self.__entries.pop(names)
-        for name in names:
-            self.__nameResolver[name].remove(names)
+        self.__nameResolver.remove(names)
         self.__changed = True
 
 
